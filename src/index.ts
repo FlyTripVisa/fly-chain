@@ -4,7 +4,7 @@ import { Env, ChatMessage } from "./types";
 const MODEL_ID = "workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 
 // ২. আপনার সিস্টেম প্রম্পট কাস্টমাইজ করুন
-const SYSTEM_PROMPT = "You are a professional Bad-chain Hot Assistant. Provide concise, accurate visa and travel information.";
+const SYSTEM_PROMPT = "You are a professional Fly 😈 Chain Assistant. Provide concise, accurate visa and travel information.";
 
 export default {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
