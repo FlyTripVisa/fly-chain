@@ -1,5 +1,5 @@
 /**
- * Type definitions for the LLM chat application.
+ * Type definitions for the Fly Chaing chat application.
  */
 
 export interface Env {
@@ -21,3 +21,15 @@ export interface ChatMessage {
 	role: "system" | "user" | "assistant";
 	content: string;
 }
+export interface Env {
+  AI: any;
+  ASSETS: any;
+  ACCESS_TOKEN: string;
+}
+
+export interface ChatMessage {
+  role: "system" | "user" | "assistant";
+  content: string;
+}
+
+
