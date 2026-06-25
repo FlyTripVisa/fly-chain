@@ -1,13 +1,13 @@
 {
-	"name": "fly-chain",
-	"description": "A simple chat application powered by Cloudflare Workers AI",
-	"cloudflare": {
-		"label": "LLM Chat App",
-		"products": [
+  "name": "fly-chain",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
 			"Workers",
 			"Workers AI",
 			"AI Gateway"
-		],
 		"categories": [
 			"ai"
 		],
