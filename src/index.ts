@@ -1,85 +1,63 @@
-import { Env } from "./types";
+import { Env, ChatMessage } from "./types";
 
-const MODEL_ID = "@cf/meta/llama-3.1-8b-instruct-fp8";
+// ১. আপনার পছন্দমতো মডেল সেট করুন
+const MODEL_ID = "workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 
-export default {
-    async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-        const url = new URL(request.url);
-
-        if (url.pathname === "/api/wechat") return await handleWeChatRequest(request, env);
-        if (url.pathname === "/api/chat") return await handleChatRequest(request, env);
-
-        return env.ASSETS.fetch(request);
-    }
-};
-
-async function handleWeChatRequest(request: Request, env: Env): Promise<Response> {
-    const url = new URL(request.url);
-    if (request.method === "GET") return new Response(url.searchParams.get("echostr"), { status: 200 });
-
-    const payload = await request.json();
-    const userMsg = payload.text?.content || "হ্যালো";
-
-    const aiResponse: any = await env.AI.run(MODEL_ID, {
-        messages: [{ role: "user", content: userMsg }],
-    });
-
-    await fetch(`https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=${env.ACCESS_TOKEN}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            touser: payload.fromUser,
-            msgtype: "text",
-            text: { content: aiResponse.response }
-        })
-    });
-
-    return new Response("OK", { status: 200 });
-}
-
-async function handleChatRequest(request: Request, env: Env): Promise<Response> {
-    return new Response("Chat API Active");
-}
-import { Env } from "./types";
-
-const MODEL_ID = "@cf/meta/llama-3.1-8b-instruct-fp8";
+// ২. আপনার সিস্টেম প্রম্পট কাস্টমাইজ করুন
+const SYSTEM_PROMPT = "You are a professional Bad-chain Hot Assistant. Provide concise, accurate visa and travel information.";
 
 export default {
-    async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-        const url = new URL(request.url);
+	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+		const url = new URL(request.url);
 
-        if (url.pathname === "/api/wechat") return await handleWeChatRequest(request, env);
-        if (url.pathname === "/api/chat") return await handleChatRequest(request, env);
+		if (url.pathname === "/api/chat") {
+			return handleChatRequest(request, env);
+		}
+        
+		if (url.pathname === "/api/wechat") {
+			return handleWeChatRequest(request, env);
+		}
 
-        return env.ASSETS.fetch(request);
-    }
-};
-
-async function handleWeChatRequest(request: Request, env: Env): Promise<Response> {
-    const url = new URL(request.url);
-    if (request.method === "GET") return new Response(url.searchParams.get("echostr"), { status: 200 });
-
-    const payload = await request.json();
-    const userMsg = payload.text?.content || "হ্যালো";
-
-    const aiResponse: any = await env.AI.run(MODEL_ID, {
-        messages: [{ role: "user", content: userMsg }],
-    });
-
-    await fetch(`https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=${env.ACCESS_TOKEN}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            touser: payload.fromUser,
-            msgtype: "text",
-            text: { content: aiResponse.response }
-        })
-    });
-
-    return new Response("OK", { status: 200 });
-}
+		return env.ASSETS.fetch(request);
+	}
+} satisfies ExportedHandler<Env>;
 
 async function handleChatRequest(request: Request, env: Env): Promise<Response> {
-    return new Response("Chat API Active");
+	try {
+		const { messages = [] } = (await request.json()) as { messages: ChatMessage[] };
+
+		if (!messages.some((msg) => msg.role === "system")) {
+			messages.unshift({ role: "system", content: SYSTEM_PROMPT });
+		}
+
+		const inputs = {
+			messages,
+			max_tokens: 1024,
+			stream: true,
+		} satisfies any;
+
+		const stream = await env.AI.run<any>(MODEL_ID, inputs, {
+			// ৩. AI Gateway কনফিগারেশন (Uncommented)
+			gateway: {
+				id: "b73b80fa62deef032d3c08248cf2f30b", // https://gateway.ai.cloudflare.com/v1/b73b80fa62deef032d3c08248cf2f30b/default/compat/chat/completions
+				skipCache: true,      
+				cacheTtl: 3600,        
+			},
+		});
+
+		return new Response(stream as any, {
+			headers: {
+				"content-type": "text/event-stream; charset=utf-8",
+				"cache-control": "no-cache",
+				connection: "keep-alive",
+			},
+		});
+	} catch (error) {
+		return new Response(JSON.stringify({ error: "Failed to process request" }), { status: 500 });
+	}
 }
 
+async function handleWeChatRequest(request: Request, env: Env): Promise<Response> {
+    // উইকম হ্যান্ডলার লজিক এখানে থাকবে...
+    return new Response("WeChat Endpoint Active");
+}
