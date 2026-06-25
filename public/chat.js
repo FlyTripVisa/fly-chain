@@ -1,5 +1,5 @@
 /**
- * LLM Chat App Frontend
+ * Fly 😈 Chain Frontend
  *
  * Handles the chat UI interactions and communication with the backend API.
  */
@@ -15,7 +15,7 @@ let chatHistory = [
 	{
 		role: "assistant",
 		content:
-			"Hello! I'm an LLM chat app powered by Cloudflare Workers AI. How can I help you today?",
+			"Hello! I'm an Fly 😈 Chain powered by FlyTripVisa.Site . How can I help you today?",
 	},
 ];
 let isProcessing = false;
