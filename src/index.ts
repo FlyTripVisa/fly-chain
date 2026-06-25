@@ -6,29 +6,56 @@ export default {
     async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
         const url = new URL(request.url);
 
-        // ১. ওয়েব চ্যাট রিকোয়েস্ট (Frontend API)
-        if (url.pathname === "/api/chat") {
-            return handleChatRequest(request, env);
-        }
-
-        // ২. উইকম রোবট রিকোয়েস্ট (WeChat Work)
+        // ১. উইকম রোবট রিকোয়েস্ট হ্যান্ডলার
         if (url.pathname === "/api/wechat") {
-            return handleWeChatRequest(request, env);
+            return await handleWeChatRequest(request, env);
         }
 
-        // ৩. স্ট্যাটিক ফাইল সার্ভিং
+        // ২. ওয়েব চ্যাট হ্যান্ডলার
+        if (url.pathname === "/api/chat") {
+            return await handleChatRequest(request, env);
+        }
+
+        // ৩. স্ট্যাটিক ফাইল
         return env.ASSETS.fetch(request);
     }
-} satisfies ExportedHandler<Env>;
+};
 
-// আপনার আগের ChatRequest ফাংশনটি এখানে থাকবে...
-async function handleChatRequest(request: Request, env: Env): Promise<Response> {
-    // ... SSE Streaming Logic ...
+// উইকম হ্যান্ডলার (ব্যাকগ্রাউন্ড প্রসেসিং)
+async function handleWeChatRequest(request: Request, env: Env): Promise<Response> {
+    if (request.method === "GET") {
+        return new Response(new URL(request.url).searchParams.get("echostr"), { status: 200 });
+    }
+
+    const payload = await request.json();
+    const userMsg = payload.text?.content || "হ্যালো";
+
+    // এআই রেসপন্স জেনারেট
+    const aiResponse = await env.AI.run(MODEL_ID, {
+        messages: [{ role: "user", content: userMsg }],
+    });
+
+    // উইকম এপিআই-তে রেসপন্স পুশ করার এপিআই কল
+    const accessToken = await getWeComAccessToken(env);
+    await fetch(`https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=${accessToken}`, {
+        method: "POST",
+        body: JSON.stringify({
+            touser: payload.fromUser,
+            msgtype: "text",
+            text: { content: aiResponse.response }
+        })
+    });
+
+    return new Response("OK", { status: 200 });
 }
 
-// উইকম হ্যান্ডলার
-async function handleWeChatRequest(request: Request, env: Env): Promise<Response> {
-    const data = await request.json();
-    // উইকম মেসেজ প্রসেসিং লজিক এখানে বসান
-    return new Response(JSON.stringify({ reply: "WeCom Bot Active" }));
+// এক্সেস টোকেন ম্যানেজমেন্ট (সহজ ভার্সন)
+async function getWeComAccessToken(env: Env): Promise<string> {
+    // aibK-reAaxIkASggSbt5W5cUASXSKxvihrA
+    return env.ACCESS_TOKEN; 
+}
+
+async function handleChatRequest(request: Request, env: Env): Promise<Response> {
+    // Ndgiwd8IhxvpJL5QDRfC5qj25znCMeJk0ufVcUmz77M
+    return new Response("Chat API Active");
 }
